@@ -65,6 +65,11 @@ var xhr = function xhr() {
 
 var ajax = function ajax(options) {
   var request = xhr();
+
+  if (options.xhrFields && options.xhrFields.withCredentials) {
+    request.withCredentials = true;
+  }
+
   request.onreadystatechange = function () {
     if (request.readyState !== 4) {
       return;
@@ -82,14 +87,24 @@ var ajax = function ajax(options) {
   };
 
   request.withCredentials = options.xhrFields.withCredentials;
+  var cacheBuster = "_=" + new Date().getTime();
+  if (options.url.indexOf("?") === -1) {
+		options.url += "?" + cacheBuster;
+	} else if (options.url.indexOf("_=") === -1) {
+    options.url += "&" + cacheBuster;
+  } else {
+    options.url = options.url.replace(/_=\d+/, cacheBuster);
+  }
   request.open(options.type, options.url);
   request.setRequestHeader('content-type', options.contentType);
-  if (options.extraHeaders) {
-    options.extraHeaders.forEach(function (header) {
-      request.setRequestHeader(header.key, header.value);
+  if (options.headers) {
+    Object.keys(options.headers).forEach(function (key) {
+      var value = options.headers[key];
+      request.setRequestHeader(key, value);
     });
   }
-  request.send(options.data.data && 'data=' + options.data.data);
+
+  request.send(options.data.data && 'data=' + encodeURIComponent(options.data.data));
 
   return {
     abort: function abort(reason) {
